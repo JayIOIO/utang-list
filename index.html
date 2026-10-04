@@ -1,30 +1,28 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en" class="h-full bg-slate-50">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GCash Payment & Balance Tracker</title>
-    <!-- Tailwind CSS CDN -->
+    <title>Shared GCash Tracker (Real-Time Database)</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome for icons -->
+    <!-- FontAwesome icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
                         gcash: {
-                            50: '#e6f0ff',
-                            100: '#cce0ff',
-                            500: '#0055ff',
-                            600: '#0044cc',
-                            700: '#003399',
-                            DEFAULT: '#0055ff'
+                            50: '#eef6ff',
+                            100: '#dbeafe',
+                            500: '#005CE6',
+                            600: '#004fc5',
+                            700: '#003eb0',
+                            bright: '#007CFF'
                         }
                     }
                 }
@@ -32,161 +30,178 @@
         }
     </script>
 </head>
-<body class="h-full bg-slate-50 text-slate-800 font-sans antialiased flex flex-col">
+<body class="h-full text-slate-800 font-sans antialiased flex flex-col min-h-screen">
 
-    <!-- Header Navigation -->
-    <header class="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white shadow-md">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+    <header class="bg-gradient-to-r from-blue-700 via-gcash-600 to-indigo-700 text-white shadow-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col sm:flex-row justify-between items-center gap-3">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-md border border-white/20 text-white font-bold text-xl shadow-inner">
                     <i class="fa-solid fa-wallet"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight">GCash Tracker</h1>
-                    <p class="text-xs text-blue-100 opacity-90">Manage balances, payments, and accounts easily</p>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight">Shared GCash Tracker</h1>
+                        <!-- Real-time Live Connection Badge -->
+                        <span id="syncStatusBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-400/20 text-amber-200 border border-amber-300/30">
+                            <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span> Connecting...
+                        </span>
+                    </div>
+                    <p class="text-xs text-blue-100 opacity-90">Real-time database synced across all users</p>
                 </div>
             </div>
+            
             <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
-                <button onclick="openModal()" class="w-full sm:w-auto bg-white text-blue-700 hover:bg-blue-50 font-semibold px-4 py-2.5 rounded-xl shadow transition duration-200 flex items-center justify-center gap-2 text-sm">
-                    <i class="fa-solid fa-plus"></i> Add New Record
+                <button onclick="exportToCSV()" class="bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-2 rounded-xl border border-white/20 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-file-csv"></i> Export CSV
+                </button>
+                <button onclick="openModal()" class="bg-white text-gcash-600 hover:bg-blue-50 text-xs sm:text-sm font-bold px-4 py-2 rounded-xl shadow-md transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Add Account
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- Main Content Container -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-6">
-        
-        <!-- Summary Cards Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Total Accounts Card -->
-            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Accounts</p>
-                    <h3 id="stat-total-accounts" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
-                </div>
-                <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg">
-                    <i class="fa-solid fa-users"></i>
-                </div>
-            </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <!-- Total Balance Card -->
-            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Balance</p>
-                    <h3 id="stat-total-balance" class="text-2xl font-bold text-slate-800 mt-1">₱0.00</h3>
+            <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Balance</span>
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm sm:text-base">
+                        <i class="fa-solid fa-scale-unbalanced-flip"></i>
+                    </div>
                 </div>
-                <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg">
-                    <i class="fa-solid fa-peso-sign"></i>
-                </div>
+                <h3 id="stat-total-balance" class="text-xl sm:text-2xl font-extrabold text-slate-800 mt-2">₱0.00</h3>
             </div>
+
             <!-- Total Paid Card -->
-            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Paid</p>
-                    <h3 id="stat-total-paid" class="text-2xl font-bold text-emerald-600 mt-1">₱0.00</h3>
+            <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Paid</span>
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm sm:text-base">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
                 </div>
-                <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
-                    <i class="fa-solid fa-circle-check"></i>
-                </div>
+                <h3 id="stat-total-paid" class="text-xl sm:text-2xl font-extrabold text-emerald-600 mt-2">₱0.00</h3>
             </div>
-            <!-- Remaining Balance Card -->
-            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Remaining Balance</p>
-                    <h3 id="stat-total-remaining" class="text-2xl font-bold text-amber-600 mt-1">₱0.00</h3>
+
+            <!-- Remaining Card -->
+            <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Remaining</span>
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm sm:text-base">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
                 </div>
-                <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
-                    <i class="fa-solid fa-clock"></i>
+                <h3 id="stat-total-remaining" class="text-xl sm:text-2xl font-extrabold text-amber-600 mt-2">₱0.00</h3>
+            </div>
+
+            <!-- Paid Accounts Count Card -->
+            <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Accounts</span>
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm sm:text-base">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                </div>
+                <div class="flex items-baseline gap-1 mt-2">
+                    <h3 id="stat-paid-count" class="text-xl sm:text-2xl font-extrabold text-slate-800">0</h3>
+                    <span id="stat-total-count" class="text-xs font-medium text-slate-400">/ 0 fully paid</span>
                 </div>
             </div>
         </div>
 
-        <!-- Search and Filter Bar -->
-        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center">
+        <div class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row gap-3 justify-between items-center">
             <div class="relative w-full md:w-96">
                 <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <i class="fa-solid fa-search"></i>
+                    <i class="fa-solid fa-magnifying-glass"></i>
                 </span>
-                <input type="text" id="searchInput" oninput="filterRecords()" placeholder="Search by name, nickname, or GCash #..." 
-                    class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition">
+                <input type="text" id="searchInput" oninput="renderRecords()" placeholder="Search name, nickname, or number..." 
+                    class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition">
             </div>
-            <div class="flex items-center gap-3 w-full md:w-auto justify-end">
-                <select id="statusFilter" onchange="filterRecords()" class="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+
+            <div class="flex items-center gap-2.5 w-full md:w-auto justify-end">
+                <select id="statusFilter" onchange="renderRecords()" class="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
                     <option value="all">All Statuses</option>
                     <option value="paid">Fully Paid</option>
                     <option value="partial">Partially Paid</option>
                     <option value="unpaid">Unpaid</option>
                 </select>
-                <button onclick="resetData()" title="Reset to Sample Data" class="text-slate-500 hover:text-red-600 hover:bg-red-50 p-2.5 rounded-xl border border-slate-200 transition">
-                    <i class="fa-solid fa-rotate-right"></i>
+
+                <button onclick="confirmClearAll()" title="Clear all accounts" class="text-slate-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-xl border border-slate-200 transition text-sm">
+                    <i class="fa-solid fa-trash-arrow-up"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Records Container -->
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden flex-1 flex flex-col">
             <div class="overflow-x-auto flex-1">
-                <table class="w-full text-left border-collapse">
+                <table class="w-full text-left border-collapse min-w-[768px]">
                     <thead>
-                        <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                            <th class="py-3.5 px-6">Account / Nickname</th>
-                            <th class="py-3.5 px-6">GCash Number</th>
-                            <th class="py-3.5 px-6">Balance</th>
-                            <th class="py-3.5 px-6">Amount Paid</th>
-                            <th class="py-3.5 px-6">Remaining</th>
-                            <th class="py-3.5 px-6 text-center">Status</th>
-                            <th class="py-3.5 px-6 text-right">Actions</th>
+                        <tr class="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                            <th class="py-3.5 px-4 sm:px-6">Account Name & Nickname</th>
+                            <th class="py-3.5 px-4">GCash Mobile #</th>
+                            <th class="py-3.5 px-4">Total Balance</th>
+                            <th class="py-3.5 px-4">Paid Amount (Editable)</th>
+                            <th class="py-3.5 px-4">Remaining</th>
+                            <th class="py-3.5 px-4 text-center">Paid Check</th>
+                            <th class="py-3.5 px-4 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="recordsTableBody" class="divide-y divide-slate-100 text-sm">
-                        <!-- Populated dynamically via JS -->
+                        <!-- Rendered dynamically -->
                     </tbody>
                 </table>
             </div>
 
-            <!-- Empty State -->
+            <!-- Empty State Loader/Notification -->
             <div id="emptyState" class="hidden flex-col items-center justify-center py-16 px-4 text-center">
                 <div class="w-16 h-16 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl mb-3">
                     <i class="fa-solid fa-folder-open"></i>
                 </div>
-                <h3 class="text-base font-semibold text-slate-700">No records found</h3>
-                <p class="text-xs text-slate-500 mt-1 max-w-sm">Get started by adding your first GCash payment record using the button above.</p>
-                <button onclick="openModal()" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-xl text-xs shadow transition">
-                    Add Record Now
+                <h3 class="text-base font-semibold text-slate-800">No GCash Records Found</h3>
+                <p class="text-xs text-slate-500 mt-1 max-w-sm">There are no records in the shared database matching your filter.</p>
+                <button onclick="openModal()" class="mt-4 bg-gcash-500 hover:bg-gcash-600 text-white font-medium px-4 py-2 rounded-xl text-xs shadow transition">
+                    + Add First Record
                 </button>
             </div>
         </div>
     </main>
 
-    <!-- Add/Edit Modal -->
-    <div id="recordModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden transition-opacity duration-300">
-        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 overflow-hidden transform transition-all scale-95 opacity-0" id="modalContainer">
+    <div id="toast" class="fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-xs sm:text-sm px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+        <span id="toastMsg">Action completed successfully</span>
+    </div>
+
+    <div id="recordModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 overflow-hidden transform transition-all" id="modalContainer">
             <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h3 id="modalTitle" class="text-base font-bold text-slate-800">Add New GCash Record</h3>
+                <h3 id="modalTitle" class="text-base font-bold text-slate-800">Add Shared GCash Account</h3>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 transition p-1">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
-            <form id="recordForm" onsubmit="saveRecord(event)" class="p-6 space-y-4">
+            <form id="recordForm" onsubmit="handleFormSubmit(event)" class="p-6 space-y-4">
                 <input type="hidden" id="recordId">
                 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Full Name</label>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Full Name *</label>
                         <input type="text" id="fullName" required placeholder="e.g. Juan Dela Cruz" 
                             class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Nickname</label>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Nickname</label>
                         <input type="text" id="nickname" placeholder="e.g. Kuya Juan" 
                             class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">GCash Number</label>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">GCash Mobile Number *</label>
                     <div class="relative">
-                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 text-xs font-medium">+63</span>
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 text-xs font-bold">+63</span>
                         <input type="text" id="gcashNumber" required placeholder="9123456789" maxlength="10" 
                             class="w-full pl-12 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition">
                     </div>
@@ -194,299 +209,291 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Total Balance (₱)</label>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Total Balance (₱) *</label>
                         <input type="number" id="balance" step="0.01" min="0" required placeholder="0.00" 
                             class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Amount Paid (₱)</label>
-                        <input type="number" id="amountPaid" step="0.01" min="0" value="0" placeholder="0.00" oninput="checkFullPayment()"
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Amount Paid (₱)</label>
+                        <input type="number" id="amountPaid" step="0.01" min="0" value="0" placeholder="0.00" oninput="syncModalPaidStatus()"
                             class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition">
                     </div>
                 </div>
 
-                <div class="pt-2 flex items-center justify-between bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                <div class="pt-2 flex items-center justify-between bg-slate-50 p-3.5 rounded-xl border border-slate-200/60">
                     <div>
-                        <label for="isPaid" class="text-xs font-bold text-slate-700 cursor-pointer block">Mark as Fully Paid</label>
-                        <p class="text-xs text-slate-500">Automatically sets paid amount equal to balance.</p>
+                        <label for="isPaid" class="text-xs font-bold text-slate-700 cursor-pointer block">Fully Paid</label>
+                        <p class="text-[11px] text-slate-500">Auto-sets paid amount equal to balance.</p>
                     </div>
-                    <input type="checkbox" id="isPaid" onchange="togglePaidCheckbox()" 
+                    <input type="checkbox" id="isPaid" onchange="toggleModalPaidCheckbox()" 
                         class="w-5 h-5 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer">
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-                    <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-medium text-sm transition">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-medium text-xs sm:text-sm transition">
                         Cancel
                     </button>
-                    <button type="submit" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm shadow transition">
-                        Save Record
+                    <button type="submit" id="saveBtn" class="px-5 py-2 rounded-xl bg-gcash-500 hover:bg-gcash-600 text-white font-semibold text-xs sm:text-sm shadow-md transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-floppy-disk"></i> Save to Database
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Custom Message Box Modal -->
-    <div id="msgModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden">
-        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-6 text-center">
-            <div id="msgIcon" class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl mx-auto mb-3">
-                <i class="fa-solid fa-info"></i>
-            </div>
-            <h4 id="msgTitle" class="text-base font-bold text-slate-800">Notification</h4>
-            <p id="msgText" class="text-sm text-slate-600 mt-1 mb-5">Message goes here.</p>
-            <button onclick="closeMsgBox()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-medium text-sm shadow transition">
-                OK
-            </button>
-        </div>
-    </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signInAnonymously, 
+            signInWithCustomToken, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            doc, 
+            setDoc, 
+            addDoc, 
+            updateDoc, 
+            deleteDoc, 
+            onSnapshot, 
+            getDocs 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    <!-- Application Scripts -->
-    <script>
-        // Storage Key
-        const STORAGE_KEY = 'gcash_tracker_records_v1';
+        // Global Firebase Configuration & Variables
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'gcash-tracker-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "demo-api-key",
+            authDomain: "demo-app.firebaseapp.com",
+            projectId: "demo-app",
+            storageBucket: "demo-app.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
+        };
 
-        // Initial Sample Data if storage is empty
-        const sampleData = [
-            { id: '1', fullName: 'Maria Santos', nickname: 'Mari', gcashNumber: '9171234567', balance: 1500.00, amountPaid: 1500.00, isPaid: true },
-            { id: '2', fullName: 'Pedro Reyes', nickname: 'Boss Pete', gcashNumber: '9187654321', balance: 3200.50, amountPaid: 1500.00, isPaid: false },
-            { id: '3', fullName: 'Ana Lim', nickname: 'Anching', gcashNumber: '9229876543', balance: 800.00, amountPaid: 0.00, isPaid: false }
-        ];
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        // Fetch records from localStorage
-        function getRecords() {
-            const data = localStorage.getItem(STORAGE_KEY);
-            if (!data) {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(sampleData));
-                return sampleData;
-            }
+        let recordsData = [];
+        let currentUser = null;
+        let unsubscribeSnapshot = null;
+
+        // Path for shared public collection (RULE 1 compliance)
+        const getPublicCollection = () => collection(db, 'artifacts', appId, 'public', 'data', 'gcash_accounts');
+
+        async function initAuth() {
             try {
-                return JSON.parse(data);
-            } catch (e) {
-                return sampleData;
-            }
-        }
-
-        // Save records to localStorage
-        function saveRecords(records) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-            renderApp();
-        }
-
-        // Format Currency PHP
-        function formatCurrency(amount) {
-            return '₱' + parseFloat(amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-
-        // Show custom message box (instead of alert)
-        function showMsg(title, text, type = 'info') {
-            document.getElementById('msgTitle').innerText = title;
-            document.getElementById('msgText').innerText = text;
-            const iconEl = document.getElementById('msgIcon');
-            if (type === 'success') {
-                iconEl.className = 'w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl mx-auto mb-3';
-                iconEl.innerHTML = '<i class="fa-solid fa-check"></i>';
-            } else if (type === 'error') {
-                iconEl.className = 'w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center text-xl mx-auto mb-3';
-                iconEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
-            } else {
-                iconEl.className = 'w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl mx-auto mb-3';
-                iconEl.innerHTML = '<i class="fa-solid fa-info"></i>';
-            }
-            document.getElementById('msgModal').classList.remove('hidden');
-        }
-
-        function closeMsgBox() {
-            document.getElementById('msgModal').classList.add('hidden');
-        }
-
-        // Modal Controls
-        function openModal(id = null) {
-            const modal = document.getElementById('recordModal');
-            const container = document.getElementById('modalContainer');
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                container.classList.remove('scale-95', 'opacity-0');
-                container.classList.add('scale-100', 'opacity-100');
-            }, 10);
-
-            if (id) {
-                document.getElementById('modalTitle').innerText = 'Edit GCash Record';
-                const records = getRecords();
-                const record = records.find(r => r.id === id);
-                if (record) {
-                    document.getElementById('recordId').value = record.id;
-                    document.getElementById('fullName').value = record.fullName;
-                    document.getElementById('nickname').value = record.nickname || '';
-                    document.getElementById('gcashNumber').value = record.gcashNumber;
-                    document.getElementById('balance').value = record.balance;
-                    document.getElementById('amountPaid').value = record.amountPaid;
-                    document.getElementById('isPaid').checked = record.isPaid;
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
                 }
+            } catch (err) {
+                console.error("Auth initialization error:", err);
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            if (user) {
+                updateConnectionBadge(true);
+                attachRealtimeListener();
             } else {
-                document.getElementById('modalTitle').innerText = 'Add New GCash Record';
-                document.getElementById('recordForm').reset();
-                document.getElementById('recordId').value = '';
-                document.getElementById('amountPaid').value = '0';
+                updateConnectionBadge(false);
             }
-        }
+        });
 
-        function closeModal() {
-            const modal = document.getElementById('recordModal');
-            const container = document.getElementById('modalContainer');
-            container.classList.remove('scale-100', 'opacity-100');
-            container.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 200);
-        }
-
-        // Check full payment checkbox synchronization
-        function checkFullPayment() {
-            const balance = parseFloat(document.getElementById('balance').value) || 0;
-            const amountPaid = parseFloat(document.getElementById('amountPaid').value) || 0;
-            const isPaidCheckbox = document.getElementById('isPaid');
-            if (balance > 0 && amountPaid >= balance) {
-                isPaidCheckbox.checked = true;
+        function updateConnectionBadge(isConnected) {
+            const badge = document.getElementById('syncStatusBadge');
+            if (isConnected) {
+                badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-400/20 text-emerald-200 border border-emerald-300/30';
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Live Sync Active`;
             } else {
-                isPaidCheckbox.checked = false;
+                badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-400/20 text-rose-200 border border-rose-300/30';
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-400"></span> Offline`;
             }
         }
 
-        function togglePaidCheckbox() {
-            const isPaidCheckbox = document.getElementById('isPaid');
-            const balanceInput = document.getElementById('balance');
-            const amountPaidInput = document.getElementById('amountPaid');
-            const balance = parseFloat(balanceInput.value) || 0;
+        function attachRealtimeListener() {
+            if (!currentUser) return;
+            if (unsubscribeSnapshot) unsubscribeSnapshot();
 
-            if (isPaidCheckbox.checked) {
-                amountPaidInput.value = balance;
-            }
+            const colRef = getPublicCollection();
+
+            // Simple collection snapshot query without complex orderBy (RULE 2 compliance)
+            unsubscribeSnapshot = onSnapshot(colRef, (snapshot) => {
+                const list = [];
+                snapshot.forEach((docSnap) => {
+                    list.push({
+                        id: docSnap.id,
+                        ...docSnap.data()
+                    });
+                });
+                
+                // Client-side sorting by updated/created timestamp
+                recordsData = list.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+                renderRecords();
+            }, (error) => {
+                console.error("Firestore snapshot error:", error);
+                showToast("Failed to fetch real-time data", "error");
+            });
         }
 
-        // Save Record Handler
-        function saveRecord(event) {
+        window.handleFormSubmit = async function(event) {
             event.preventDefault();
+            if (!currentUser) {
+                showToast("Authentication required", "error");
+                return;
+            }
+
             const id = document.getElementById('recordId').value;
             const fullName = document.getElementById('fullName').value.trim();
             const nickname = document.getElementById('nickname').value.trim();
-            let gcashNumber = document.getElementById('gcashNumber').value.trim();
+            let gcashNumber = document.getElementById('gcashNumber').value.trim().replace(/\D/g, '');
             const balance = parseFloat(document.getElementById('balance').value) || 0;
             const amountPaid = parseFloat(document.getElementById('amountPaid').value) || 0;
             const isPaid = document.getElementById('isPaid').checked || (amountPaid >= balance && balance > 0);
 
-            // Clean GCash number format
-            gcashNumber = gcashNumber.replace(/\D/g, '');
-            if (gcashNumber.startsWith('0')) {
-                gcashNumber = gcashNumber.substring(1);
-            }
+            if (gcashNumber.startsWith('0')) gcashNumber = gcashNumber.substring(1);
             if (gcashNumber.length !== 10) {
-                showMsg('Invalid GCash Number', 'Please enter a valid 10-digit mobile number after +63 (e.g. 9123456789).', 'error');
+                showToast("Please enter a valid 10-digit mobile number", "error");
                 return;
             }
 
-            const records = getRecords();
+            const payload = {
+                fullName,
+                nickname,
+                gcashNumber,
+                balance,
+                amountPaid,
+                isPaid,
+                updatedAt: Date.now()
+            };
 
-            if (id) {
-                // Update
-                const index = records.findIndex(r => r.id === id);
-                if (index !== -1) {
-                    records[index] = { id, fullName, nickname, gcashNumber, balance, amountPaid, isPaid };
-                }
-            } else {
-                // Create
-                const newRecord = {
-                    id: Date.now().toString(),
-                    fullName,
-                    nickname,
-                    gcashNumber,
-                    balance,
-                    amountPaid,
-                    isPaid
-                };
-                records.unshift(newRecord);
-            }
-
-            saveRecords(records);
-            closeModal();
-            showMsg('Success!', 'GCash record successfully saved.', 'success');
-        }
-
-        // Quick update amount paid inline or toggle paid status
-        function quickTogglePaid(id) {
-            const records = getRecords();
-            const record = records.find(r => r.id === id);
-            if (record) {
-                if (record.isPaid) {
-                    record.isPaid = false;
-                    record.amountPaid = 0;
+            try {
+                if (id) {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'gcash_accounts', id);
+                    await updateDoc(docRef, payload);
+                    showToast("Account updated in database!");
                 } else {
-                    record.isPaid = true;
-                    record.amountPaid = record.balance;
+                    payload.createdAt = Date.now();
+                    await addDoc(getPublicCollection(), payload);
+                    showToast("New account saved to shared database!");
                 }
-                saveRecords(records);
+                closeModal();
+            } catch (err) {
+                console.error("Error saving record:", err);
+                showToast("Failed to save changes", "error");
             }
-        }
+        };
 
-        // Delete Record
-        function deleteRecord(id) {
-            if (confirm('Are you sure you want to delete this record?')) { // fallback confirm or custom delete
-                const records = getRecords().filter(r => r.id !== id);
-                saveRecords(records);
-                showMsg('Deleted', 'Record has been removed.', 'success');
+        window.updatePaidAmountInline = async function(id, newAmountVal) {
+            if (!currentUser) return;
+            const amount = parseFloat(newAmountVal) || 0;
+            const rec = recordsData.find(r => r.id === id);
+            if (!rec) return;
+
+            const isPaid = amount >= rec.balance && rec.balance > 0;
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'gcash_accounts', id);
+                await updateDoc(docRef, {
+                    amountPaid: amount,
+                    isPaid: isPaid,
+                    updatedAt: Date.now()
+                });
+                showToast("Payment amount updated");
+            } catch (err) {
+                console.error("Error updating amount:", err);
+                showToast("Failed to update amount", "error");
             }
-        }
+        };
 
-        // Reset to default sample records
-        function resetData() {
-            if (confirm('Reset records back to sample demo data?')) {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(sampleData));
-                renderApp();
-                showMsg('Reset Complete', 'Loaded sample records successfully.', 'success');
+        window.togglePaidStatus = async function(id, currentPaidStatus) {
+            if (!currentUser) return;
+            const rec = recordsData.find(r => r.id === id);
+            if (!rec) return;
+
+            const nextStatus = !currentPaidStatus;
+            const nextAmount = nextStatus ? rec.balance : 0;
+
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'gcash_accounts', id);
+                await updateDoc(docRef, {
+                    isPaid: nextStatus,
+                    amountPaid: nextAmount,
+                    updatedAt: Date.now()
+                });
+                showToast(nextStatus ? "Marked as Fully Paid" : "Marked as Unpaid");
+            } catch (err) {
+                console.error("Error toggling status:", err);
+                showToast("Failed to update status", "error");
             }
-        }
+        };
 
-        // Filter and Render Records
-        function filterRecords() {
-            renderApp();
-        }
+        window.deleteRecord = async function(id) {
+            if (!currentUser) return;
+            if (confirm("Are you sure you want to delete this shared GCash record?")) {
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'gcash_accounts', id);
+                    await deleteDoc(docRef);
+                    showToast("Record deleted");
+                } catch (err) {
+                    console.error("Error deleting record:", err);
+                    showToast("Failed to delete record", "error");
+                }
+            }
+        };
 
-        // Render application data and statistics
-        function renderApp() {
-            const records = getRecords();
+        window.confirmClearAll = async function() {
+            if (!currentUser || recordsData.length === 0) return;
+            if (confirm("WARNING: Are you sure you want to delete ALL shared records for everyone?")) {
+                try {
+                    for (const r of recordsData) {
+                        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'gcash_accounts', r.id);
+                        await deleteDoc(docRef);
+                    }
+                    showToast("All records cleared", "info");
+                } catch (err) {
+                    console.error("Error clearing records:", err);
+                    showToast("Failed to clear records", "error");
+                }
+            }
+        };
+
+        function renderRecords() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const statusFilter = document.getElementById('statusFilter').value;
 
-            // Filter records
-            const filtered = records.filter(r => {
-                const matchesSearch = 
-                    r.fullName.toLowerCase().includes(searchTerm) || 
-                    (r.nickname && r.nickname.toLowerCase().includes(searchTerm)) || 
-                    r.gcashNumber.includes(searchTerm);
+            const filtered = recordsData.filter(r => {
+                const nameMatch = r.fullName?.toLowerCase().includes(searchTerm) || 
+                                  (r.nickname && r.nickname.toLowerCase().includes(searchTerm)) || 
+                                  r.gcashNumber?.includes(searchTerm);
 
-                let matchesStatus = true;
-                const remaining = r.balance - r.amountPaid;
-                if (statusFilter === 'paid') {
-                    matchesStatus = r.isPaid || remaining <= 0;
-                } else if (statusFilter === 'partial') {
-                    matchesStatus = !r.isPaid && r.amountPaid > 0 && remaining > 0;
-                } else if (statusFilter === 'unpaid') {
-                    matchesStatus = r.amountPaid === 0 && !r.isPaid;
-                }
+                const remaining = (r.balance || 0) - (r.amountPaid || 0);
+                const isFullyPaid = r.isPaid || remaining <= 0;
+                const isPartial = !isFullyPaid && (r.amountPaid || 0) > 0;
 
-                return matchesSearch && matchesStatus;
+                let statusMatch = true;
+                if (statusFilter === 'paid') statusMatch = isFullyPaid;
+                else if (statusFilter === 'partial') statusMatch = isPartial;
+                else if (statusFilter === 'unpaid') statusMatch = !isFullyPaid && !isPartial;
+
+                return nameMatch && statusMatch;
             });
 
-            // Calculate Stats
-            let totalAccounts = records.length;
-            let totalBalance = records.reduce((sum, r) => sum + (parseFloat(r.balance) || 0), 0);
-            let totalPaid = records.reduce((sum, r) => sum + (parseFloat(r.amountPaid) || 0), 0);
-            let totalRemaining = totalBalance - totalPaid;
-            if (totalRemaining < 0) totalRemaining = 0;
+            // Calculate Dashboard Statistics
+            const totalBalance = recordsData.reduce((acc, r) => acc + (parseFloat(r.balance) || 0), 0);
+            const totalPaid = recordsData.reduce((acc, r) => acc + (parseFloat(r.amountPaid) || 0), 0);
+            const totalRemaining = Math.max(0, totalBalance - totalPaid);
+            const paidCount = recordsData.filter(r => r.isPaid || (r.balance - r.amountPaid) <= 0).length;
 
-            document.getElementById('stat-total-accounts').innerText = totalAccounts;
             document.getElementById('stat-total-balance').innerText = formatCurrency(totalBalance);
             document.getElementById('stat-total-paid').innerText = formatCurrency(totalPaid);
             document.getElementById('stat-total-remaining').innerText = formatCurrency(totalRemaining);
+            document.getElementById('stat-paid-count').innerText = paidCount;
+            document.getElementById('stat-total-count').innerText = `/ ${recordsData.length} fully paid`;
 
             const tbody = document.getElementById('recordsTableBody');
             const emptyState = document.getElementById('emptyState');
@@ -502,48 +509,58 @@
             }
 
             filtered.forEach(r => {
-                const remaining = Math.max(0, r.balance - r.amountPaid);
+                const remaining = Math.max(0, (r.balance || 0) - (r.amountPaid || 0));
                 const isFullyPaid = r.isPaid || remaining <= 0;
-                const isPartial = !isFullyPaid && r.amountPaid > 0;
+                const isPartial = !isFullyPaid && (r.amountPaid || 0) > 0;
 
                 let badgeHtml = '';
                 if (isFullyPaid) {
-                    badgeHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60"><i class="fa-solid fa-check text-[10px]"></i> Fully Paid</span>`;
+                    badgeHtml = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60"><i class="fa-solid fa-check text-[10px]"></i> Fully Paid</span>`;
                 } else if (isPartial) {
-                    badgeHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/60"><i class="fa-solid fa-clock text-[10px]"></i> Partial</span>`;
+                    badgeHtml = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200/60"><i class="fa-solid fa-clock text-[10px]"></i> Partial</span>`;
                 } else {
-                    badgeHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200/60"><i class="fa-solid fa-triangle-exclamation text-[10px]"></i> Unpaid</span>`;
+                    badgeHtml = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200/60"><i class="fa-solid fa-triangle-exclamation text-[10px]"></i> Unpaid</span>`;
                 }
 
                 const tr = document.createElement('tr');
-                tr.className = 'hover:bg-slate-50/80 transition duration-150 border-b border-slate-100 last:border-none';
+                tr.className = 'hover:bg-blue-50/30 transition border-b border-slate-100 last:border-none';
                 tr.innerHTML = `
-                    <td class="py-4 px-6">
-                        <div class="font-semibold text-slate-800">${escapeHtml(r.fullName)}</div>
+                    <td class="py-3.5 px-4 sm:px-6">
+                        <div class="font-bold text-slate-800">${escapeHtml(r.fullName)}</div>
                         ${r.nickname ? `<div class="text-xs text-slate-500 font-medium">"${escapeHtml(r.nickname)}"</div>` : ''}
                     </td>
-                    <td class="py-4 px-6 font-mono text-slate-600 font-medium">
-                        +63 ${escapeHtml(r.gcashNumber)}
+                    <td class="py-3.5 px-4 font-mono text-slate-700 text-xs sm:text-sm">
+                        <div class="flex items-center gap-2">
+                            <span>+63 ${escapeHtml(r.gcashNumber)}</span>
+                            <button onclick="copyToClipboard('0${r.gcashNumber}')" title="Copy GCash Number" class="text-slate-400 hover:text-gcash-500 transition p-1">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                        </div>
                     </td>
-                    <td class="py-4 px-6 font-semibold text-slate-700">
+                    <td class="py-3.5 px-4 font-bold text-slate-800">
                         ${formatCurrency(r.balance)}
                     </td>
-                    <td class="py-4 px-6 font-semibold text-emerald-600">
-                        ${formatCurrency(r.amountPaid)}
+                    <td class="py-3.5 px-4">
+                        <div class="relative max-w-[130px]">
+                            <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400 text-xs font-bold">₱</span>
+                            <input type="number" step="0.01" min="0" value="${r.amountPaid || 0}" 
+                                onchange="updatePaidAmountInline('${r.id}', this.value)"
+                                class="w-full pl-6 pr-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-emerald-600 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        </div>
                     </td>
-                    <td class="py-4 px-6 font-semibold text-slate-700">
+                    <td class="py-3.5 px-4 font-bold ${remaining > 0 ? 'text-amber-600' : 'text-slate-400'}">
                         ${formatCurrency(remaining)}
                     </td>
-                    <td class="py-4 px-6 text-center">
-                        <div class="flex items-center justify-center gap-2">
+                    <td class="py-3.5 px-4 text-center">
+                        <div class="flex flex-col items-center gap-1">
+                            <input type="checkbox" ${isFullyPaid ? 'checked' : ''} 
+                                onchange="togglePaidStatus('${r.id}', ${isFullyPaid})" 
+                                class="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer">
                             ${badgeHtml}
                         </div>
                     </td>
-                    <td class="py-4 px-6 text-right">
-                        <div class="flex items-center justify-end gap-1.5">
-                            <button onclick="quickTogglePaid('${r.id}')" title="${isFullyPaid ? 'Mark as Unpaid' : 'Mark as Fully Paid'}" class="p-2 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition">
-                                <i class="fa-solid ${isFullyPaid ? 'fa-rotate-left' : 'fa-check'}"></i>
-                            </button>
+                    <td class="py-3.5 px-4 text-right">
+                        <div class="flex items-center justify-end gap-1">
                             <button onclick="openModal('${r.id}')" title="Edit Record" class="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition">
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </button>
@@ -557,16 +574,130 @@
             });
         }
 
-        // Utility to escape HTML and prevent injection
-        function escapeHtml(text) {
-            if (!text) return '';
-            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(>"/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        // Modal Utilities
+        window.openModal = function(id = null) {
+            const modal = document.getElementById('recordModal');
+            modal.classList.remove('hidden');
+
+            if (id) {
+                document.getElementById('modalTitle').innerText = 'Edit Shared Account';
+                const r = recordsData.find(item => item.id === id);
+                if (r) {
+                    document.getElementById('recordId').value = r.id;
+                    document.getElementById('fullName').value = r.fullName || '';
+                    document.getElementById('nickname').value = r.nickname || '';
+                    document.getElementById('gcashNumber').value = r.gcashNumber || '';
+                    document.getElementById('balance').value = r.balance || 0;
+                    document.getElementById('amountPaid').value = r.amountPaid || 0;
+                    document.getElementById('isPaid').checked = r.isPaid || false;
+                }
+            } else {
+                document.getElementById('modalTitle').innerText = 'Add Shared GCash Account';
+                document.getElementById('recordForm').reset();
+                document.getElementById('recordId').value = '';
+                document.getElementById('amountPaid').value = '0';
+            }
+        };
+
+        window.closeModal = function() {
+            document.getElementById('recordModal').classList.add('hidden');
+        };
+
+        window.syncModalPaidStatus = function() {
+            const balance = parseFloat(document.getElementById('balance').value) || 0;
+            const amountPaid = parseFloat(document.getElementById('amountPaid').value) || 0;
+            document.getElementById('isPaid').checked = (balance > 0 && amountPaid >= balance);
+        };
+
+        window.toggleModalPaidCheckbox = function() {
+            const isChecked = document.getElementById('isPaid').checked;
+            const balance = parseFloat(document.getElementById('balance').value) || 0;
+            if (isChecked) {
+                document.getElementById('amountPaid').value = balance;
+            }
+        };
+
+        // Utility: Copy to Clipboard
+        window.copyToClipboard = function(text) {
+            const tempInput = document.createElement('input');
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            showToast(`Copied GCash #: ${text}`);
+        };
+
+        // Utility: Toast display
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.innerText = msg;
+            if (type === 'error') {
+                toastIcon.className = 'fa-solid fa-triangle-exclamation text-rose-400 text-base';
+            } else if (type === 'info') {
+                toastIcon.className = 'fa-solid fa-circle-info text-blue-400 text-base';
+            } else {
+                toastIcon.className = 'fa-solid fa-circle-check text-emerald-400 text-base';
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
         }
 
-        // Initialize App on Window Load
-        window.onload = function() {
-            renderApp();
+        // Utility: Export to CSV
+        window.exportToCSV = function() {
+            if (recordsData.length === 0) {
+                showToast("No data to export", "info");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Full Name,Nickname,GCash Number,Total Balance,Amount Paid,Remaining Balance,Paid Status\n";
+
+            recordsData.forEach(r => {
+                const remaining = Math.max(0, (r.balance || 0) - (r.amountPaid || 0));
+                const status = (r.isPaid || remaining <= 0) ? 'Fully Paid' : (r.amountPaid > 0 ? 'Partial' : 'Unpaid');
+                const row = [
+                    `"${r.fullName || ''}"`,
+                    `"${r.nickname || ''}"`,
+                    `"0${r.gcashNumber || ''}"`,
+                    r.balance || 0,
+                    r.amountPaid || 0,
+                    remaining,
+                    `"${status}"`
+                ].join(",");
+                csvContent += row + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `gcash_tracker_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("Exported to CSV!");
         };
+
+        function formatCurrency(val) {
+            return '₱' + parseFloat(val || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // Initialize Firebase Authentication
+        initAuth();
     </script>
 </body>
 </html>
